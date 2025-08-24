@@ -18,7 +18,7 @@ A simple Laravel web application for managing tasks.
 -   PHP (Laravel)
 -   MySQL
 -   Optional Dev Environments:
-    -   Docker (Laravel Sail)
+    -   Docker
     -   Local PHP server
 
 ---
@@ -31,76 +31,82 @@ You can run the app either with Docker (recommended) or on your local machine.
 
 -   Git
 -   Option A (Docker):
-    -   Docker Desktop (or Docker Engine) and Docker Compose
+    -   Docker Desktop (or Docker Engine) and Docker Compose (docker compose)
 -   Option B (Local):
-    -   PHP >= 8.1 with required extensions (bcmath, ctype, fileinfo, json, mbstring, openssl, PDO, tokenizer, xml)
+    -   PHP >= 8.1 with required extensions
     -   Composer
     -   MySQL 8 (or compatible)
-    -   Node.js + npm/yarn (only if you need to build assets)
 
 ---
 
-## Option A: Run with Docker (Laravel Sail)
+## Option A: Run with Docker
 
-Laravel Sail provides a lightweight Docker environment for Laravel.
+Docker provides an isolated environment for running this program.
+
+Note:
+
+-   Replace -ti taskmanager_app and <db_service> with the service/container names defined in your docker-compose.yml (you can find them there or via: docker compose ps).
+-   The examples below assume the app is published on port 8040.
 
 1. Clone the repository
 
--   git clone https://github.com/your-org/your-repo.git
--   cd your-repo
+-   git clone https://github.com/degod/task-manager-coalition.git
+-   cd task-manager-coalition
 
 2. Copy environment file
 
 -   cp .env.example .env
 
-3. Set environment variables for Sail
-   In .env ensure the following (adjust if needed):
+3. Configure environment variables (adjust to match your docker-compose.yml)
 
 -   DB_CONNECTION=mysql
 -   DB_HOST=mysql
 -   DB_PORT=3306
 -   DB_DATABASE=laravel
--   DB_USERNAME=sail
--   DB_PASSWORD=password
--   APP_URL=http://localhost
+-   DB_USERNAME=admin
+-   DB_PASSWORD=admin
+-   APP_URL=http://localhost:8040
 
-4. Install PHP dependencies
+4. Build and start containers
 
--   If you have Composer installed locally:
-    -   composer install
--   If you don’t have Composer locally, use the Composer Docker image:
-    -   docker run --rm -u "$(id -u):$(id -g)" -v "$PWD":/app -w /app composer install --no-interaction --prefer-dist
+-   docker compose up -d --build
 
-5. Install Sail (if not already present in the project)
+5. Install PHP dependencies (inside the PHP container)
 
--   composer require laravel/sail --dev
--   php artisan sail:install
-    Choose MySQL when prompted. If the project already has Sail set up, you can skip this step.
+-   docker compose exec -ti taskmanager_app composer install
 
-6. Start the containers
+6. Generate app key
 
--   ./vendor/bin/sail up -d
+-   docker compose exec -ti taskmanager_app php artisan key:generate
 
-7. Generate app key
+7. Run migrations (and seed if seeds exist)
 
--   ./vendor/bin/sail artisan key:generate
+-   docker compose exec -ti taskmanager_app php artisan migrate --seed
 
-8. Run migrations (and seed if seeds exist)
+8. Access the app
 
--   ./vendor/bin/sail artisan migrate --seed
-
-9. (Optional) Build frontend assets
-
--   ./vendor/bin/sail npm install
--   ./vendor/bin/sail npm run dev
-
-10. Access the app
-
--   http://localhost
+-   http://localhost:8040
 
 To stop:
 
--   ./vendor/bin/sail down
+-   docker compose down
+
+### Shell access to run Artisan commands
+
+Open an interactive bash shell in the PHP container:
+
+-   docker compose exec -ti taskmanager_app bash
+
+From inside the shell you can run:
+
+-   php artisan migrate
+-   php artisan tinker
+-   php artisan optimize:clear
+-   exit # leave the container
+
+Run a single command without opening a shell:
+
+-   docker compose exec -ti taskmanager_app php artisan migrate --seed
 
 ---
 
@@ -108,8 +114,8 @@ To stop:
 
 1. Clone the repository
 
--   git clone https://github.com/your-org/your-repo.git
--   cd your-repo
+-   git clone https://github.com/degod/task-manager-coalition.git
+-   cd task-manager-coalition
 
 2. Install dependencies
 
@@ -119,15 +125,14 @@ To stop:
 
 -   cp .env.example .env
 
-4. Create a database and configure .env
-   Ensure your .env has valid DB settings, for example:
+4. Create a database and configure .env (example)
 
 -   DB_CONNECTION=mysql
 -   DB_HOST=127.0.0.1
 -   DB_PORT=3306
--   DB_DATABASE=task_manager
--   DB_USERNAME=your_mysql_user
--   DB_PASSWORD=your_mysql_password
+-   DB_DATABASE=laravel
+-   DB_USERNAME=admin
+-   DB_PASSWORD=admin
 -   APP_URL=http://127.0.0.1:8000
 
 5. Generate app key
@@ -138,15 +143,23 @@ To stop:
 
 -   php artisan migrate --seed
 
-7. (Optional) Build frontend assets
-
--   npm install
--   npm run dev
-
-8. Start the local server
+7. Start the local server
 
 -   php artisan serve
-    The app will be available at http://127.0.0.1:8000
+-   The app will be available at http://127.0.0.1:8000
+
+---
+
+## Running Tests
+
+-   Locally:
+
+    -   php artisan test
+    -   or: ./vendor/bin/phpunit
+
+-   Inside Docker:
+    -   docker compose exec -ti taskmanager_app php artisan test
+    -   or: docker compose exec -ti taskmanager_app ./vendor/bin/phpunit
 
 ---
 
@@ -162,33 +175,39 @@ To stop:
 
 Common settings in .env:
 
--   APP_NAME=Task Manager
+-   APP_NAME="Task Manager"
 -   APP_ENV=local
 -   APP_DEBUG=true
--   APP_URL=http://localhost (Docker) or http://127.0.0.1:8000 (Local)
+-   APP_URL=http://localhost:8040 (Docker) or http://127.0.0.1:8000 (Local)
 -   DB_CONNECTION=mysql
--   DB_HOST=mysql (Docker/Sail) or 127.0.0.1 (Local)
+-   DB_HOST=<db_service> (Docker) or 127.0.0.1 (Local)
 -   DB_PORT=3306
 -   DB_DATABASE, DB_USERNAME, DB_PASSWORD set appropriately
-
-If using Sail defaults:
-
--   DB_USERNAME=sail
--   DB_PASSWORD=password
 
 ---
 
 ## Troubleshooting
 
 -   Port conflicts
-    -   If MySQL is already running locally, stop it or change the port in docker-compose/Sail or in your local MySQL.
+
+    -   If MySQL is already running locally, stop it or change the port in docker-compose or in your local MySQL.
+
 -   Permissions on Linux/macOS
+
     -   If you see permission issues with storage or bootstrap/cache:
-        -   For Sail: ./vendor/bin/sail artisan storage:link
-        -   chmod -R ug+rwx storage bootstrap/cache
+        -   Locally: chmod -R ug+rwx storage bootstrap/cache
+        -   Docker: docker compose exec -ti taskmanager_app chmod -R ug+rwx storage bootstrap/cache
+
+-   Missing storage symlink for public files
+
+    -   Locally: php artisan storage:link
+    -   Docker: docker compose exec -ti taskmanager_app php artisan storage:link
+
 -   Cache issues
-    -   php artisan optimize:clear
-    -   For Sail: ./vendor/bin/sail artisan optimize:clear
+
+    -   Locally: php artisan optimize:clear
+    -   Docker: docker compose exec -ti taskmanager_app php artisan optimize:clear
+
 -   Composer memory errors
     -   COMPOSER_MEMORY_LIMIT=-1 composer install
 
